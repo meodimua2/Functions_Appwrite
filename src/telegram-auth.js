@@ -5,16 +5,24 @@ export const verifyTelegram = (initData, botToken) => {
     const hash = params.get("hash");
     params.delete("hash");
 
+    // Sắp xếp params theo bảng chữ cái
     const dataCheckString = [...params.entries()]
-        .sort()
+        .sort(([a], [b]) => a.localeCompare(b))
         .map(([k, v]) => `${k}=${v}`)
         .join("\n");
 
-    const secretKey = crypto.createHash("sha256").update(botToken).digest();
-    const hmac = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+    // CÁCH TẠO KEY CHUẨN TELEGRAM:
+    const secretKey = crypto.createHmac("sha256", "WebAppData")
+        .update(botToken)
+        .digest();
 
+    const hmac = crypto.createHmac("sha256", secretKey)
+        .update(dataCheckString)
+        .digest("hex");
+
+    const isValid = hmac === hash;
     return {
-        isValid: hmac === hash,
-        user: hmac === hash ? JSON.parse(params.get("user")) : null
+        isValid,
+        user: isValid ? JSON.parse(params.get("user")) : null
     };
 };
