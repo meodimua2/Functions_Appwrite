@@ -5,13 +5,11 @@ export const verifyTelegram = (initData, botToken) => {
     const hash = params.get("hash");
     params.delete("hash");
 
-    // Sắp xếp params theo bảng chữ cái
     const dataCheckString = [...params.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([k, v]) => `${k}=${v}`)
         .join("\n");
 
-    // CÁCH TẠO KEY CHUẨN TELEGRAM:
     const secretKey = crypto.createHmac("sha256", "WebAppData")
         .update(botToken)
         .digest();

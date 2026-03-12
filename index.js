@@ -3,54 +3,67 @@ import { verifyTelegram } from "./src/telegram-auth.js";
 export default async ({ req, res, log, error }) => {
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
-    // 1. XỬ LÝ LỚP VỎ 1: Đảm bảo body là Object (Hóa giải việc Appwrite gửi String)
+    // DEBUG xem Appwrite gửi gì
+    log("RAW BODY: " + JSON.stringify(req.body));
+
     let body = req.body;
-    if (typeof body === 'string') {
+
+    // Appwrite thường gửi body dạng string
+    if (typeof body === "string") {
         try {
             body = JSON.parse(body);
-        } catch (e) {
+        } catch {
             body = {};
         }
     }
 
-    // 2. XỬ LÝ LỚP VỎ 2 & LẤY DỮ LIỆU: Dò tìm initData ở mọi ngóc ngách
-    // Cách này sẽ lấy initData dù đạo hữu gửi thẳng hay gửi qua trường 'data'
-    let initData = body.initData;
+    let initData = body?.initData;
 
-    if (!initData && body.data) {
+    // Trường hợp Appwrite bọc trong data
+    if (!initData && body?.data) {
         try {
-            const innerData = typeof body.data === 'string' ? JSON.parse(body.data) : body.data;
-            initData = innerData?.initData;
+            const inner =
+                typeof body.data === "string"
+                    ? JSON.parse(body.data)
+                    : body.data;
+
+            initData = inner?.initData;
         } catch (e) {
-            error("Không thể bóc vỏ lớp data: " + e.message);
+            error("Parse data lỗi: " + e.message);
         }
     }
 
-    // 3. KIỂM TRA LINH KHÍ
-    log("Linh khí nhận được: " + (initData ? "Đầy đủ" : "Trống rỗng"));
+    // decode vì Telegram encode
+    if (initData) {
+        initData = decodeURIComponent(initData);
+    }
+
+    log("InitData nhận được: " + (initData ? "Có dữ liệu" : "NULL"));
 
     if (!initData) {
         return res.json({
             success: false,
-            message: "No initData provided. Hãy kiểm tra cấu trúc gửi từ Frontend!",
-            debug_received: body // Trả về để đạo hữu soi lỗi ở tab Network
+            message: "No initData provided",
+            debug_received: body
         }, 400);
     }
 
-    // 4. XÁC THỰC LỆNH BÀI (Verify HMAC)
     const result = verifyTelegram(initData, BOT_TOKEN);
 
     if (!result.isValid) {
-        log("Thiên kiếp giáng lâm: Xác thực thất bại!");
+        log("Verify Telegram FAILED");
         return res.json({
             success: false,
-            message: "Verification failed. Kiểm tra BOT_TOKEN trong Appwrite Settings!"
+            message: "Verification failed"
         }, 401);
     }
 
-    // 5. THÀNH CÔNG
-    const userName = result.user?.username || result.user?.first_name || "Vô danh đạo hữu";
-    log(`Đạo hữu ${userName} đã vượt qua trạm gác!`);
+    const userName =
+        result.user?.username ||
+        result.user?.first_name ||
+        "Unknown user";
+
+    log(`User verified: ${userName}`);
 
     return res.json({
         success: true,
