@@ -1,9 +1,9 @@
-import { verifyTelegram } from "./src/telegram-auth.js";
-import { databaseService } from "./src/telegram-data.js";
+const { VerifyTelegram } = require("./src/telegram-auth");
+const { DatabaseService } = require("./src/telegram-data");
 
-const dbService = new databaseService();
+const dbService = new DatabaseService();
 
-export default async ({ req, res, log, error }) => {
+module.exports = async ({ req, res, log, error }) => {
 
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
@@ -32,7 +32,7 @@ export default async ({ req, res, log, error }) => {
         );
     }
 
-    const result = verifyTelegram(initData, BOT_TOKEN);
+    const result = VerifyTelegram(initData, BOT_TOKEN);
 
     if (!result.isValid || !result.user) {
         return res.json(
@@ -61,4 +61,5 @@ export default async ({ req, res, log, error }) => {
             500
         );
     }
+
 };

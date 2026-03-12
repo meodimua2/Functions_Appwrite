@@ -1,6 +1,6 @@
-import crypto from "crypto";
+const crypto = require("crypto");
 
-export const verifyTelegram = (initData, botToken) => {
+const VerifyTelegram = (initData, botToken) => {
     const params = new URLSearchParams(initData);
 
     const hash = params.get("hash");
@@ -43,3 +43,5 @@ export const verifyTelegram = (initData, botToken) => {
 
     return { isValid, user };
 };
+
+module.exports = { VerifyTelegram };

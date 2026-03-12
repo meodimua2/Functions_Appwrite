@@ -1,7 +1,6 @@
-import { ID } from "node-appwrite";
-import { databases } from "./appwrite.js";
+const { databases } = require("./appwrite");
 
-export class databaseService {
+class DatabaseService {
 
     constructor() {
         this.dbId = process.env.APPWRITE_DATABASE_ID;
@@ -14,7 +13,6 @@ export class databaseService {
 
         try {
 
-            // thử lấy user theo documentId
             const user = await databases.getDocument(
                 this.dbId,
                 this.collectionId,
@@ -25,7 +23,6 @@ export class databaseService {
 
         } catch (err) {
 
-            // nếu không tồn tại → tạo user mới
             if (err.code === 404) {
 
                 return await databases.createDocument(
@@ -52,3 +49,5 @@ export class databaseService {
     }
 
 }
+
+module.exports = { DatabaseService };
