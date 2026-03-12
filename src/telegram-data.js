@@ -3,8 +3,8 @@ const { databases } = require("./appwrite");
 class DatabaseService {
 
     constructor() {
-        this.dbId = process.env.APPWRITE_DATABASE_ID;
-        this.collectionId = process.env.APPWRITE_COLLECTION_ID;
+        this.dbId = "69b22e5d00106ba0308f";
+        this.collectionId = "daohuulo";
     }
 
     async getOrCreateUser(tgUser) {
