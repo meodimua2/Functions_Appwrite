@@ -1,6 +1,13 @@
 const crypto = require("crypto");
 
-const VerifyTelegram = (initData, botToken) => {
+function VerifyTelegram(initData, botToken) {
+
+    if (!initData || !botToken) {
+        return { isValid: false, user: null };
+    }
+
+    initData = initData.trim();
+
     const params = new URLSearchParams(initData);
 
     const hash = params.get("hash");
@@ -10,9 +17,9 @@ const VerifyTelegram = (initData, botToken) => {
 
     params.delete("hash");
 
-    const dataCheckString = [...params.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => `${k}=${v}`)
+    const dataCheckString = Array.from(params.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([key, value]) => `${key}=${value}`)
         .join("\n");
 
     const secretKey = crypto
@@ -31,17 +38,34 @@ const VerifyTelegram = (initData, botToken) => {
         receivedHash.length === calculatedHash.length &&
         crypto.timingSafeEqual(receivedHash, calculatedHash);
 
-    let user = null;
-
-    if (isValid && params.get("user")) {
-        try {
-            user = JSON.parse(params.get("user"));
-        } catch {
-            user = null;
-        }
+    if (!isValid) {
+        return { isValid: false, user: null };
     }
 
-    return { isValid, user };
-};
+    const authDate = parseInt(params.get("auth_date"), 10);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (!authDate || now - authDate > 3600) {
+        return { isValid: false, user: null };
+    }
+
+    let user = null;
+
+    try {
+        const userStr = params.get("user");
+        if (userStr) user = JSON.parse(userStr);
+    } catch {
+        user = null;
+    }
+
+    if (!user?.id) {
+        return { isValid: false, user: null };
+    }
+
+    return {
+        isValid: true,
+        user
+    };
+}
 
 module.exports = { VerifyTelegram };
