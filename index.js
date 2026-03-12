@@ -1,72 +1,64 @@
 import { verifyTelegram } from "./src/telegram-auth.js";
+import { databaseService } from "./src/telegram-data.js";
+
+const dbService = new databaseService();
 
 export default async ({ req, res, log, error }) => {
-    const BOT_TOKEN = process.env.BOT_TOKEN;
 
-    // DEBUG xem Appwrite gửi gì
-    log("RAW BODY: " + JSON.stringify(req.body));
+    const BOT_TOKEN = process.env.BOT_TOKEN;
 
     let body = req.body;
 
-    // Appwrite thường gửi body dạng string
-    if (typeof body === "string") {
-        try {
-            body = JSON.parse(body);
-        } catch {
-            body = {};
+    try {
+        if (typeof body === "string") body = JSON.parse(body);
+
+        if (body?.data) {
+            body = typeof body.data === "string"
+                ? JSON.parse(body.data)
+                : body.data;
         }
+
+    } catch (e) {
+        error("Parse body error: " + e.message);
+        body = {};
     }
 
-    let initData = body?.initData;
-
-    // Trường hợp Appwrite bọc trong data
-    if (!initData && body?.data) {
-        try {
-            const inner =
-                typeof body.data === "string"
-                    ? JSON.parse(body.data)
-                    : body.data;
-
-            initData = inner?.initData;
-        } catch (e) {
-            error("Parse data lỗi: " + e.message);
-        }
-    }
-
-    // decode vì Telegram encode
-    if (initData) {
-        initData = decodeURIComponent(initData);
-    }
-
-    log("InitData nhận được: " + (initData ? "Có dữ liệu" : "NULL"));
+    const initData = body?.initData || null;
 
     if (!initData) {
-        return res.json({
-            success: false,
-            message: "No initData provided",
-            debug_received: body
-        }, 400);
+        return res.json(
+            { success: false, message: "Missing initData" },
+            400
+        );
     }
 
     const result = verifyTelegram(initData, BOT_TOKEN);
 
-    if (!result.isValid) {
-        log("Verify Telegram FAILED");
-        return res.json({
-            success: false,
-            message: "Verification failed"
-        }, 401);
+    if (!result.isValid || !result.user) {
+        return res.json(
+            { success: false, message: "Telegram verification failed" },
+            401
+        );
     }
 
-    const userName =
-        result.user?.username ||
-        result.user?.first_name ||
-        "Unknown user";
+    try {
 
-    log(`User verified: ${userName}`);
+        const userDoc = await dbService.getOrCreateUser(result.user);
 
-    return res.json({
-        success: true,
-        user: result.user
-    });
+        log(`User ${userDoc.firstName} authenticated`);
+
+        return res.json({
+            success: true,
+            user: userDoc
+        });
+
+    } catch (err) {
+
+        error("Database error: " + err.message);
+
+        return res.json(
+            { success: false, message: "Database error" },
+            500
+        );
+    }
 };

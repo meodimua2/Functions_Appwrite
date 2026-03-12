@@ -2,7 +2,12 @@ import crypto from "crypto";
 
 export const verifyTelegram = (initData, botToken) => {
     const params = new URLSearchParams(initData);
+
     const hash = params.get("hash");
+    if (!hash) {
+        return { isValid: false, user: null };
+    }
+
     params.delete("hash");
 
     const dataCheckString = [...params.entries()]
@@ -10,17 +15,31 @@ export const verifyTelegram = (initData, botToken) => {
         .map(([k, v]) => `${k}=${v}`)
         .join("\n");
 
-    const secretKey = crypto.createHmac("sha256", "WebAppData")
+    const secretKey = crypto
+        .createHmac("sha256", "WebAppData")
         .update(botToken)
         .digest();
 
-    const hmac = crypto.createHmac("sha256", secretKey)
+    const calculatedHash = crypto
+        .createHmac("sha256", secretKey)
         .update(dataCheckString)
-        .digest("hex");
+        .digest();
 
-    const isValid = hmac === hash;
-    return {
-        isValid,
-        user: isValid ? JSON.parse(params.get("user")) : null
-    };
+    const receivedHash = Buffer.from(hash, "hex");
+
+    const isValid =
+        receivedHash.length === calculatedHash.length &&
+        crypto.timingSafeEqual(receivedHash, calculatedHash);
+
+    let user = null;
+
+    if (isValid && params.get("user")) {
+        try {
+            user = JSON.parse(params.get("user"));
+        } catch {
+            user = null;
+        }
+    }
+
+    return { isValid, user };
 };
