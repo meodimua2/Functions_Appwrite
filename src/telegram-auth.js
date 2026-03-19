@@ -62,10 +62,7 @@ function VerifyTelegram(initData, botToken) {
         return { isValid: false, user: null };
     }
 
-    return {
-        isValid: true,
-        user
-    };
+    return { isValid: true, userId: user.id.toString() };
 }
 
 module.exports = { VerifyTelegram };
