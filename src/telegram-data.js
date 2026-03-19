@@ -10,6 +10,7 @@ class DatabaseService {
         const telegramId = String(tgUser.id);
 
         try {
+            // Kiểm tra ID đã có chưa
             const user = await databases.getDocument(
                 this.dbId,
                 this.collectionId,
@@ -20,17 +21,16 @@ class DatabaseService {
 
         } catch (err) {
             if (err.code === 404) {
+                // Tạo mới Document trống nếu chưa có
                 const newUser = await databases.createDocument(
                     this.dbId,
                     this.collectionId,
-                    telegramId,   
-                    {}
+                    telegramId,
+                    {} // Data rỗng
                 );
 
                 return { userId: newUser.$id };
             }
-
-            console.error("Database Error:", err.message);
             throw err;
         }
     }
