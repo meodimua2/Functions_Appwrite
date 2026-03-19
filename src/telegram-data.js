@@ -23,7 +23,8 @@ class DatabaseService {
                 const newUser = await databases.createDocument(
                     this.dbId,
                     this.collectionId,
-                    telegramId,      
+                    telegramId,   
+                    {}
                 );
 
                 return { userId: newUser.$id };
