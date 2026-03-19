@@ -1,7 +1,7 @@
 const { databases } = require("./appwrite");
 
 class DatabaseService {
-
+    
     constructor() {
         this.dbId = "69b22e5d00106ba0308f";
         this.collectionId = "daohuulo";
@@ -54,9 +54,7 @@ class DatabaseService {
             };
 
         } catch (err) {
-
             if (err.code === 404) {
-
                 const newUser = await databases.createDocument({
                     databaseId: this.dbId,
                     collectionId: this.collectionId,
@@ -72,7 +70,7 @@ class DatabaseService {
 
                         onboarded: false,
 
-                        createdAt: new Date().toISOString()
+                        $createdAt: new Date().toISOString()
                     }
                 });
 
