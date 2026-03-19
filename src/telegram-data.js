@@ -7,26 +7,37 @@ class DatabaseService {
     }
 
     async getOrCreateUser(tgUser) {
-    const telegramId = String(tgUser.id);
+        const telegramId = String(tgUser.id);
 
-    try {
-        const user = await databases.getDocument(this.dbId, this.collectionId, telegramId);
-        return { userId: user.$id, friends: user.friends, status: user.status };
-    } catch (err) {
-        if (err.code === 404) {
-            const newUser = await databases.createDocument(
-                this.dbId,
-                this.collectionId,
-                telegramId, 
-                {
-                    telegramId: telegramId, 
-                    status: "online",      
-                    friends: []            
-                }
+        try {
+            // Thử lấy thông tin User
+            const user = await databases.getDocument(
+                this.dbId, 
+                this.collectionId, 
+                telegramId
             );
-            return { userId: newUser.$id, friends: [], status: "active" };
+            
+            return { 
+                userId: user.$id, 
+                status: user.status || "online" 
+            };
+        } catch (err) {
+            // Nếu chưa có (404), tạo mới document với trạng thái mặc định
+            if (err.code === 404) {
+                const newUser = await databases.createDocument(
+                    this.dbId,
+                    this.collectionId,
+                    telegramId, 
+                    {
+                        telegramId: telegramId, 
+                        status: "online" // Chỉ lưu trạng thái
+                    }
+                );
+                return { userId: newUser.$id, status: "online" };
+            }
+            throw err;
         }
-        throw err;}
     }
+}
 
 module.exports = { DatabaseService };
