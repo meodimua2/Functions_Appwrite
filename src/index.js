@@ -1,4 +1,4 @@
-const { authHandler } = require("./src/handlers/auth"); 
+const { authHandler } = require("./handlers/auth"); 
 
 module.exports = async (context) => {
     const { req, res, error, log } = context;
