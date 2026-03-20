@@ -1,50 +1,59 @@
-const { authHandler } = require("./handlers/auth"); 
+const { authHandler } = require("./handlers/auth");
 
-module.exports = async (context) => {
-    const { req, res, error, log } = context;
+function parseBody(rawBody) {
+    if (!rawBody) return {};
 
-    // --- ĐOẠN GHI LOG DEBUG ---
-    log("--- DEBUG REQUEST ---");
-    log("Type of req.body: " + typeof req.body);
-    log("Content of req.body: " + JSON.stringify(req.body));
-    log("Headers: " + JSON.stringify(req.headers));
-    log("---------------------");
+    // Nếu là object rồi → dùng luôn
+    if (typeof rawBody === "object") return rawBody;
 
-    let payload = req.body;
+    // Nếu là string → thử JSON trước
+    if (typeof rawBody === "string") {
+        try {
+            return JSON.parse(rawBody);
+        } catch {
+            // không phải JSON → parse dạng form
+            const params = new URLSearchParams(rawBody);
+            const obj = {};
 
-    try {
-        // Bước 1: Parse nếu là chuỗi
-        if (typeof payload === "string") {
-            log("Payload is string, parsing...");
-            payload = JSON.parse(payload);
+            for (const [key, value] of params.entries()) {
+                obj[key] = value;
+            }
+
+            return obj;
         }
-
-        // Bước 2: Bóc lớp vỏ 'body' (Nếu có)
-        if (payload && payload.body) {
-            log("Found nested 'body' field, unboxing...");
-            payload = typeof payload.body === "string" ? JSON.parse(payload.body) : payload.body;
-        }
-
-        // Bước 3: Bóc thêm lớp 'data' (Nếu có)
-        if (payload && payload.data) {
-            log("Found nested 'data' field, unboxing...");
-            payload = typeof payload.data === "string" ? JSON.parse(payload.data) : payload.data;
-        }
-        
-        log("Final Payload: " + JSON.stringify(payload));
-        
-    } catch (e) {
-        error("JSON Parse Error: " + e.message);
-        return res.json({ success: false, message: "Invalid JSON structure" }, 400);
     }
 
-    // Gán kết quả sạch vào req.body
-    context.req.body = payload;
+    return {};
+}
+
+module.exports = async (context) => {
+    const { req, res, error } = context;
 
     try {
+        const parsedBody = parseBody(req.body);
+
+        // Nếu có body.data → unwrap thêm 1 lớp
+        if (parsedBody?.data) {
+            try {
+                parsedBody.data = typeof parsedBody.data === "string"
+                    ? JSON.parse(parsedBody.data)
+                    : parsedBody.data;
+            } catch {
+                // ignore lỗi data
+            }
+        }
+
+        // gắn lại body sạch
+        req.body = parsedBody.data || parsedBody;
+
         return await authHandler(context);
+
     } catch (err) {
         error("Main Index Error: " + err.message);
-        return res.json({ success: false, message: "Internal Server Error" }, 500);
+
+        return res.json({
+            success: false,
+            message: "Internal Server Error"
+        }, 500);
     }
 };
