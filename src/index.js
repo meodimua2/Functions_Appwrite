@@ -1,59 +1,38 @@
 const { authHandler } = require("./handlers/auth");
 
-function parseBody(rawBody) {
-    if (!rawBody) return {};
-
-    // Nếu là object rồi → dùng luôn
-    if (typeof rawBody === "object") return rawBody;
-
-    // Nếu là string → thử JSON trước
-    if (typeof rawBody === "string") {
-        try {
-            return JSON.parse(rawBody);
-        } catch {
-            // không phải JSON → parse dạng form
-            const params = new URLSearchParams(rawBody);
-            const obj = {};
-
-            for (const [key, value] of params.entries()) {
-                obj[key] = value;
-            }
-
-            return obj;
-        }
-    }
-
-    return {};
-}
-
 module.exports = async (context) => {
     const { req, res, error } = context;
 
     try {
-        const parsedBody = parseBody(req.body);
+        let body = req.body;
 
-        // Nếu có body.data → unwrap thêm 1 lớp
-        if (parsedBody?.data) {
-            try {
-                parsedBody.data = typeof parsedBody.data === "string"
-                    ? JSON.parse(parsedBody.data)
-                    : parsedBody.data;
-            } catch {
-                // ignore lỗi data
-            }
+        // 👉 chỉ parse JSON nếu là string
+        if (typeof body === "string") {
+            body = JSON.parse(body);
         }
 
-        // gắn lại body sạch
-        req.body = parsedBody.data || parsedBody;
+        // 👉 unwrap nếu có data
+        if (body?.data) {
+            body = typeof body.data === "string"
+                ? JSON.parse(body.data)
+                : body.data;
+        }
+
+        // 👉 đảm bảo là object
+        if (typeof body !== "object") {
+            return res.json({ success: false, message: "Invalid body format" }, 400);
+        }
+
+        req.body = body;
 
         return await authHandler(context);
 
     } catch (err) {
-        error("Main Index Error: " + err.message);
+        error("Parse error: " + err.message);
 
         return res.json({
             success: false,
-            message: "Internal Server Error"
-        }, 500);
+            message: "Invalid request body"
+        }, 400);
     }
 };
