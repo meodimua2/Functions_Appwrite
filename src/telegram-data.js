@@ -1,43 +1,47 @@
 const { databases } = require("./appwrite");
 
-class DatabaseService {
+class UserService {
     constructor() {
-        this.dbId = "69b22e5d00106ba0308f"; 
-        this.collectionId = "users";
+        this.dbId = "69b22e5d00106ba0308f";
+        this.usersCol = "users";
     }
 
     async getOrCreateUser(tgUser) {
         const telegramId = String(tgUser.id);
 
         try {
-            // Thử lấy thông tin User
             const user = await databases.getDocument(
-                this.dbId, 
-                this.collectionId, 
+                this.dbId,
+                this.usersCol,
                 telegramId
             );
-            
-            return { 
-                userId: user.$id, 
-                status: user.status || "online" 
+
+            return {
+                userId: user.$id,
+                status: user.status || "online"
             };
+
         } catch (err) {
-            // Nếu chưa có (404), tạo mới document với trạng thái mặc định
             if (err.code === 404) {
                 const newUser = await databases.createDocument(
                     this.dbId,
-                    this.collectionId,
-                    telegramId, 
+                    this.usersCol,
+                    telegramId,
                     {
-                        telegramId: telegramId, 
-                        status: "online" // Chỉ lưu trạng thái
+                        telegramId,
+                        status: "online"
                     }
                 );
-                return { userId: newUser.$id, status: "online" };
+
+                return {
+                    userId: newUser.$id,
+                    status: "online"
+                };
             }
+
             throw err;
         }
     }
 }
 
-module.exports = { DatabaseService };
+module.exports = { UserService };
