@@ -1,7 +1,7 @@
 const { TelegramAuthService } = require("../service/auth.service");
 const { UserService } = require("../service/user.service");
-const { CacheService } = require("../services/security/cache.service");
-const { RateLimitService } = require("../services/security/rateLimit.service");
+const { CacheService } = require("../security/cache.service");
+const { RateLimitService } = require("../security/rateLimit.service");
 const jwt = require("jsonwebtoken");
 
 const cache = new CacheService();
