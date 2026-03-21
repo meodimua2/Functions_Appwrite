@@ -12,21 +12,15 @@ const userService = new UserService();
 async function authHandler({ req, res, log, error }) {
     const { BOT_TOKEN, JWT_SECRET } = process.env;
     
-    const body = req.body; 
-    if (typeof body === "string") {
-        try {
-            body = JSON.parse(body);
-        } catch (e) {
-            log("Không thể parse body trong Handler");
-        }
-    }
-    const initData = (body && body.initData) ? body.initData : null;
-    
+    const body = req.body; // ✅ dùng luôn
+
+    const initData = body?.initData;
+
     if (!initData) {
-        // Nếu vẫn lỗi, Log này sẽ cho biết req.body đang chứa cái gì
-        log("Handler Error Check - req.body is: " + JSON.stringify(req.body));
-        return res.json({ success: false, message: "Missing initData in Handler" }, 400);
-    }
+        log("Handler Error - body: " + JSON.stringify(body));
+        return res.json({ success: false, message: "Missing initData" }, 400);
+    };
+    
     const ip = req.headers["x-forwarded-for"] || "unknown";
     if (!rateLimitIP.check(ip)) return res.json({ success: false, message: "Too many requests (IP)" }, 429);
 
