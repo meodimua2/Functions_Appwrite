@@ -2,7 +2,7 @@ const { TelegramAuthService } = require("../service/auth.service");
 const { UserService } = require("../service/user.service");
 const { CacheService } = require("../security/cache.service");
 const { RateLimitService } = require("../security/rateLimit.service");
-const jwt = require("jsonwebtoken");
+const { JwtService } = require("../security/jwt.service");
 
 const cache = new CacheService();
 const rateLimitIP = new RateLimitService(500);
@@ -12,17 +12,19 @@ const userService = new UserService();
 async function authHandler({ payload, req, res, log, error }) {
     const { BOT_TOKEN, JWT_SECRET } = process.env;
 
-    const initData = payload?.initData; // ✅ dùng payload
+    if (!BOT_TOKEN) {
+        return res.json({ success: false, message: "Server config error" }, 500);
+    }
 
+    const initData = payload?.initData;
     if (!initData) {
-        log("Payload lỗi: " + JSON.stringify(payload));
         return res.json({ success: false, message: "Missing initData" }, 400);
     }
 
     const ip = req.headers["x-forwarded-for"] || "unknown";
 
     if (!rateLimitIP.check(ip)) {
-        return res.json({ success: false, message: "Too many requests (IP)" }, 429);
+        return res.json({ success: false, message: "Too many requests" }, 429);
     }
 
     const auth = new TelegramAuthService(BOT_TOKEN);
@@ -35,7 +37,7 @@ async function authHandler({ payload, req, res, log, error }) {
     const telegramId = String(result.userId);
 
     if (!rateLimitUser.check(telegramId)) {
-        return res.json({ success: false, message: "Too many requests (User)" }, 429);
+        return res.json({ success: false, message: "Too many requests" }, 429);
     }
 
     const cached = cache.getCache(telegramId);
@@ -46,23 +48,24 @@ async function authHandler({ payload, req, res, log, error }) {
     try {
         const user = await userService.getOrCreateUser({ id: telegramId });
 
-        let token = null;
-        if (JWT_SECRET) {
-            token = jwt.sign(
-                { userId: user.userId, tgId: telegramId },
-                JWT_SECRET,
-                { expiresIn: "7d" }
-            );
-        }
+        const jwtService = new JwtService(JWT_SECRET);
 
-        const responseData = { userId: user.userId, token };
+        const token = jwtService.sign({
+            userId: user.userId,
+            tgId: telegramId
+        });
+
+        const responseData = {
+            userId: user.userId,
+            token
+        };
 
         cache.setCache(telegramId, responseData);
 
         return res.json({ success: true, ...responseData });
 
     } catch (err) {
-        error("DB error: " + err.message);
+        error("Auth handler error: " + err.message);
         return res.json({ success: false }, 500);
     }
 }
