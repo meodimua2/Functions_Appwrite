@@ -13,6 +13,13 @@ async function authHandler({ req, res, log, error }) {
     const { BOT_TOKEN, JWT_SECRET } = process.env;
     
     const body = req.body; 
+    if (typeof body === "string") {
+        try {
+            body = JSON.parse(body);
+        } catch (e) {
+            log("Không thể parse body trong Handler");
+        }
+    }
     const initData = (body && body.initData) ? body.initData : null;
     
     if (!initData) {
