@@ -15,17 +15,23 @@ async function authHandler({ req, res, log, error }) {
     const body = req.body; 
     const initData = (body && body.initData) ? body.initData : null;
 
-    if (!initData) return res.json({ success: false, message: "Missing initData" }, 400);
-
+    if (!initData) {
+        log("Error: initData is empty in Handler"); 
+        return res.json({ success: false, message: "Missing initData" }, 400);
+    }
+    
     const ip = req.headers["x-forwarded-for"] || "unknown";
     if (!rateLimitIP.check(ip)) return res.json({ success: false, message: "Too many requests (IP)" }, 429);
 
     const auth = new TelegramAuthService(BOT_TOKEN);
     const result = auth.verify(initData);
+
+    log("Auth Verify Result: " + JSON.stringify(result));
+    
     if (!result || !result.isValid) return res.json({ success: false, message: "Unauthorized" }, 401);
 
     const telegramId = String(result.userId);
-
+    log("Processing Telegram ID: " + telegramId);
     if (!rateLimitUser.check(telegramId)) return res.json({ success: false, message: "Too many requests (User)" }, 429);
 
     const cached = cache.getCache(telegramId);
