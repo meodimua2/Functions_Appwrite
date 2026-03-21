@@ -14,12 +14,12 @@ async function authHandler({ req, res, log, error }) {
     
     const body = req.body; 
     const initData = (body && body.initData) ? body.initData : null;
-
-    if (!initData) {
-        log("Error: initData is empty in Handler"); 
-        return res.json({ success: false, message: "Missing initData" }, 400);
-    }
     
+    if (!initData) {
+        // Nếu vẫn lỗi, Log này sẽ cho biết req.body đang chứa cái gì
+        log("Handler Error Check - req.body is: " + JSON.stringify(req.body));
+        return res.json({ success: false, message: "Missing initData in Handler" }, 400);
+    }
     const ip = req.headers["x-forwarded-for"] || "unknown";
     if (!rateLimitIP.check(ip)) return res.json({ success: false, message: "Too many requests (IP)" }, 429);
 
