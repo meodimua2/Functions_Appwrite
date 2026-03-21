@@ -50,23 +50,32 @@ async function authHandler({ payload, req, res, log, error }) {
 
         const jwtService = new JwtService(JWT_SECRET);
 
+        // JWT chỉ giữ thông tin định danh (Nhỏ gọn)
         const token = jwtService.sign({
             userId: user.userId,
             tgId: telegramId
         });
 
+        // ResponseData trả về toàn bộ thông tin để Frontend hiển thị
         const responseData = {
             userId: user.userId,
-            token
+            telegramId: user.telegramId,
+            status: user.status,
+            balanceTrx: user.balanceTrx, // Lấy từ kết quả của userService
+            addresstrx: user.addresstrx, // Lấy từ kết quả của userService
+            token: token
         };
 
+        // Lưu Cache (Bạn nên lưu cả cục responseData để lần sau lấy cho nhanh)
         cache.setCache(telegramId, responseData);
 
+        log(`User ${telegramId} logged in with balance: ${user.balanceTrx}`);
+        
         return res.json({ success: true, ...responseData });
 
     } catch (err) {
         error("Auth handler error: " + err.message);
-        return res.json({ success: false }, 500);
+        return res.json({ success: false, message: "Internal Server Error" }, 500);
     }
 }
 
