@@ -28,7 +28,7 @@ class UserService {
                         telegramId: stringId, 
                         status: "online",
                         balanceTrx: 0,
-                        addresstrx: null
+                        addressTrx: null
                     }
                 );
 
