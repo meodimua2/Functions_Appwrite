@@ -44,7 +44,7 @@ class UserService {
             telegramId: user.telegramId,
             status: user.status,
             balanceTrx: user.balance || 0,
-            addresstrx: user.trx || null
+            addressTrx: user.trx || null
         };
     }
 }
