@@ -25,8 +25,7 @@ class UserService {
                     this.usersCol,
                     stringId, 
                     {
-                        telegramId: stringId, 
-                        status: "online"
+                        telegramId: stringId
                     }
                 );
 
@@ -39,8 +38,7 @@ class UserService {
     _formatUser(user) {
         return {
             userId: user.$id,
-            telegramId: user.telegramId,
-            status: user.status
+            telegramId: user.telegramId
         };
     }
 }
