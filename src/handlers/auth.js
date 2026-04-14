@@ -56,7 +56,6 @@ async function authHandler({ payload, req, res, log, error }) {
 
         const responseData = {
             telegramId: user.telegramId,
-            status: user.status,
             token: token
         };
 
