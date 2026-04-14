@@ -2,7 +2,7 @@ const { databases } = require("../config/appwrite.config");
 
 class UserService {
     constructor() {
-        this.dbId = "69b22e5d00106ba0308f";
+        this.dbId = process.env.APPWRITE_DATABASE_ID;
         this.usersCol = "users";
     }
 
@@ -26,9 +26,7 @@ class UserService {
                     stringId, 
                     {
                         telegramId: stringId, 
-                        status: "online",
-                        balanceTrx: 0,
-                        addressTrx: null
+                        status: "online"
                     }
                 );
 
@@ -42,9 +40,7 @@ class UserService {
         return {
             userId: user.$id,
             telegramId: user.telegramId,
-            status: user.status,
-            balanceTrx: user.balance || 0,
-            addressTrx: user.trx || null
+            status: user.status
         };
     }
 }
