@@ -2,6 +2,15 @@ const router = require("./router");
 
 module.exports = async (context) => {
     const { log, error, req } = context;
+
+    // Kiểm tra env vars cần thiết
+    const requiredEnv = ['APPWRITE_DATABASE_ID', 'BOT_TOKEN', 'JWT_SECRET', 'RIOT_API_KEY'];
+    const missing = requiredEnv.filter(key => !process.env[key]);
+    if (missing.length > 0) {
+        error(`Missing environment variables: ${missing.join(', ')}`);
+        return context.res.json({ success: false, message: "Server configuration error" }, 500);
+    }
+
     let payload = req.body;
 
     try {

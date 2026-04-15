@@ -6,38 +6,32 @@ const userService = new UserService();
 const tftService = new TftService(userService);
 
 async function linkTftHandler(context) {
-    const { payload, res, log, error } = context;
-    const { input, token } = payload;
-    const { JWT_SECRET } = process.env; // Đồng nhất cách lấy biến môi trường
+    const { payload, res, log, error, userId } = context;
+    const { input } = payload;
+
+    if (!input || typeof input !== 'string' || !input.includes('#')) {
+        return res.json({ success: false, message: "Input không hợp lệ, phải là Riot ID dạng name#tag" }, 400);
+    }
+
+    const startTime = Date.now();
 
     try {
-        // 1. Xác thực JWT
-        const jwt = new JwtService(JWT_SECRET);
-        const decoded = jwt.verify(token);
-
-        if (!decoded || !decoded.userId) {
-            return res.json({ success: false, message: "Token không hợp lệ" }, 401);
-        }
-
-        // stringId chính là Telegram ID (userId trong token)
-        const stringId = String(decoded.userId);
-
-        // 2. Lấy dữ liệu mới từ Riot API
         const tftProfile = await tftService.searchPlayer(input);
 
-        // 3. Cập nhật vào Appwrite
-        // Không cần saveMapping trong service, handler sẽ điều phối lưu trữ ở đây
-        const updatedUserDoc = await userService.updateTftInfo(stringId, tftProfile);
+        const updatedUserDoc = await userService.updateTftInfo(userId, tftProfile);
 
-        // 4. Trả về dữ liệu đã được định dạng đồng nhất
+        const duration = Date.now() - startTime;
+        log(`Link TFT completed in ${duration}ms for user ${userId}`);
+
         return res.json({
             success: true,
             message: "Liên kết thành công",
-            data: userService._formatUser(updatedUserDoc) // Đảm bảo có isLinked và định dạng chuẩn
+            data: userService._formatUser(updatedUserDoc) 
         });
 
     } catch (err) {
-        error("Link TFT error: " + err.message);
+        const duration = Date.now() - startTime;
+        error(`Link TFT failed in ${duration}ms: ${err.message}`);
         return res.json({
             success: false,
             message: err.message || "Lỗi hệ thống"

@@ -34,7 +34,6 @@ async function authHandler({ payload, req, res, log, error }) {
         return res.json({ success: false, message: "Unauthorized" }, 401);
     }
 
-    // stringId chính là Telegram ID lấy từ kết quả verify
     const stringId = String(result.userId);
 
     if (!rateLimitUser.check(stringId)) {

@@ -15,11 +15,19 @@ class TftService {
         };
 
         this.userService = userService;
+        this.cache = new Map(); // Cache cho profile, TTL 10 phút
+        this.cacheTtl = 10 * 60 * 1000;
     }
 
     async searchPlayer(riotId) {
         if (!riotId.includes("#")) {
             throw new Error("Riot ID phải có dạng name#tag");
+        }
+
+        // Check cache
+        const cached = this.cache.get(riotId);
+        if (cached && Date.now() < cached.expire) {
+            return cached.data;
         }
 
         const [gameName, tagLine] = riotId.split("#");
@@ -39,6 +47,11 @@ class TftService {
             league
         });
 
+        // Cache profile
+        this.cache.set(riotId, {
+            data: profile,
+            expire: Date.now() + this.cacheTtl
+        });
 
         return profile;
     }
