@@ -39,7 +39,6 @@ class TftService {
             league
         });
 
-        await this.saveMapping(profile);
 
         return profile;
     }
