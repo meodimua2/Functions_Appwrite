@@ -6,23 +6,16 @@ const userService = new UserService();
 const tftService = new TftService(userService);
 
 async function linkTftHandler(context) {
-    const { payload, res, error } = context;
+    const { payload, res } = context;
     const { input, token } = payload;
 
     try {
         // 🔐 validate input
-        if (!input || typeof input !== "string") {
+        if (!input || typeof input !== "string" || !input.includes("#")) {
             return res.json({
                 success: false,
-                message: "Thiếu input"
+                message: "Riot ID phải có dạng name#tag"
             }, 400);
-        }
-
-        if (!token) {
-            return res.json({
-                success: false,
-                message: "Thiếu token"
-            }, 401);
         }
 
         // 🔐 verify JWT
@@ -30,42 +23,28 @@ async function linkTftHandler(context) {
         const decoded = jwt.verify(token);
 
         if (!decoded || !decoded.userId) {
-            return res.json({
-                success: false,
-                message: "Token không hợp lệ hoặc đã hết hạn"
-            }, 401);
+            return res.json({ success: false, message: "Token không hợp lệ" }, 401);
         }
 
         const userId = String(decoded.userId);
 
-        // 📦 đảm bảo user tồn tại
-        await userService.getOrCreateUser({ id: userId });
-
-        // 🔥 gọi unified search (điểm mạnh của bạn)
         const tftProfile = await tftService.searchPlayer(input);
 
-        if (!tftProfile) {
-            return res.json({
-                success: false,
-                message: "Không tìm thấy người chơi"
-            }, 404);
-        }
-
-        // 💾 update DB
+        await userService.getOrCreateUser({ id: userId });
         await userService.updateTftInfo(userId, tftProfile);
 
         return res.json({
             success: true,
-            message: "Liên kết tài khoản thành công",
+            message: "Liên kết thành công",
             data: tftProfile
         });
 
     } catch (err) {
-        error("Link TFT error: " + err.message);
-
         return res.json({
             success: false,
             message: err.message || "Lỗi hệ thống"
         }, 400);
     }
 }
+
+module.exports = { linkTftHandler };

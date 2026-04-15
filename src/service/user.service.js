@@ -1,4 +1,5 @@
 const { databases } = require("../config/appwrite.config");
+const { Query } = require("node-appwrite");
 
 class UserService {
 
@@ -69,6 +70,7 @@ class UserService {
     _formatUser(user) {
         return {
             telegramId: user.$id,
+            isLinked: !!user.puuid,
             puuid: user.puuid ?? null,
             gameName: user.gameName ?? 'N/A',
             rank: user.tier && user.rank 

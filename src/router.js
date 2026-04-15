@@ -1,4 +1,5 @@
-const { authHandler, linkTftHandler } = require("./handlers/auth");
+const { authHandler } = require("./handlers/auth");
+const { linkTftHandler } = require("./handlers/tft");
 
 async function router(context) {
     const { payload, res } = context;
