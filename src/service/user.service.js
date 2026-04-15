@@ -1,6 +1,7 @@
 const { databases } = require("../config/appwrite.config");
 
 class UserService {
+
     constructor() {
         this.dbId = process.env.APPWRITE_DATABASE_ID;
         this.usersCol = "users";

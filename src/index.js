@@ -1,39 +1,21 @@
-const { authHandler } = require("./handlers/auth");
+const router = require("./router");
 
 module.exports = async (context) => {
-    const { log, error, req, res } = context;
-
+    const { log, error, req } = context;
     let payload = req.body;
 
     try {
-        if (typeof payload === "string") {
-            payload = JSON.parse(payload);
-        }
+        if (typeof payload === "string") payload = JSON.parse(payload);
+        if (payload?.body) payload = typeof payload.body === "string" ? JSON.parse(payload.body) : payload.body;
+        if (payload?.data) payload = typeof payload.data === "string" ? JSON.parse(payload.data) : payload.data;
 
-        if (payload && typeof payload.body === "string") {
-            payload = JSON.parse(payload.body);
-        } else if (payload && typeof payload.body === "object") {
-            payload = payload.body;
-        }
-
-        if (payload && typeof payload.data === "string") {
-            payload = JSON.parse(payload.data);
-        } else if (payload && typeof payload.data === "object") {
-            payload = payload.data;
-        }
-
-        log("Final Payload: " + JSON.stringify(payload));
-
+        log("Incoming Action: " + (payload?.action || 'default'));
         context.payload = payload;
 
-        return await authHandler(context);
+        return await router(context);
 
     } catch (e) {
         error("Parse error: " + e.message);
-
-        return res.json({
-            success: false,
-            message: "Invalid request payload"
-        }, 400);
+        return context.res.json({ success: false, message: "Invalid payload" }, 400);
     }
 };

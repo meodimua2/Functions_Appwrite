@@ -34,34 +34,34 @@ async function authHandler({ payload, req, res, log, error }) {
         return res.json({ success: false, message: "Unauthorized" }, 401);
     }
 
-    const telegramId = String(result.userId);
+    // stringId chính là Telegram ID lấy từ kết quả verify
+    const stringId = String(result.userId);
 
-    if (!rateLimitUser.check(telegramId)) {
+    if (!rateLimitUser.check(stringId)) {
         return res.json({ success: false, message: "Too many requests" }, 429);
     }
 
-    const cached = cache.getCache(telegramId);
+    const cached = cache.getCache(stringId);
     if (cached) {
         return res.json({ success: true, ...cached });
     }
 
     try {
-        const user = await userService.getOrCreateUser({ id: telegramId });
+        const user = await userService.getOrCreateUser({ id: stringId });
 
         const jwtService = new JwtService(JWT_SECRET);
 
         const token = jwtService.sign({
-            userId: user.userId
+            userId: user.telegramId 
         });
 
         const responseData = {
             telegramId: user.telegramId,
-            token: token
+            token: token,
+            isLinked: user.isLinked 
         };
 
-        cache.setCache(telegramId, responseData);
-
-        log(`User ${telegramId} logged in with balance: ${user.balanceTrx}`);
+        cache.setCache(stringId, responseData);
         
         return res.json({ success: true, ...responseData });
 
