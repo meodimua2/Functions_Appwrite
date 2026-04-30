@@ -1,12 +1,13 @@
 {
-  "name": "functions",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "lending-app-backend",
+  "version": "2.0.0",
+  "description": "Backend cho vay P2P trên Blockchain (Appwrite Functions)",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "test": "echo \"No tests yet\" && exit 0"
   },
-  "keywords": [],
+  "keywords": ["lending", "blockchain", "polygon", "appwrite", "fintech"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

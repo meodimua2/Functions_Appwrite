@@ -27,8 +27,10 @@ async function authMiddleware(context) {
             return res.json({ success: false, message: "Token không hợp lệ" }, 401);
         }
 
+        // Inject userId vào payload để các handler dùng trực tiếp
         context.userId = String(decoded.userId);
-        return null; // Tiếp tục
+        context.payload.userId = String(decoded.userId);
+        return null;
 
     } catch (err) {
         log("Auth middleware error: " + err.message);

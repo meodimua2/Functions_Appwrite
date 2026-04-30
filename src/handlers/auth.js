@@ -7,66 +7,58 @@ const { JwtService } = require("../security/jwt.service");
 const cache = new CacheService();
 const rateLimitIP = new RateLimitService(500);
 const rateLimitUser = new RateLimitService(1000);
-const userService = new UserService();
+const userSvc = new UserService();
 
 async function authHandler({ payload, req, res, log, error }) {
     const { BOT_TOKEN, JWT_SECRET } = process.env;
 
-    if (!BOT_TOKEN) {
-        return res.json({ success: false, message: "Server config error" }, 500);
-    }
-
     const initData = payload?.initData;
     if (!initData) {
-        return res.json({ success: false, message: "Missing initData" }, 400);
+        return res.json({ success: false, message: "Thiếu initData" }, 400);
     }
 
     const ip = req.headers["x-forwarded-for"] || "unknown";
-
     if (!rateLimitIP.check(ip)) {
-        return res.json({ success: false, message: "Too many requests" }, 429);
+        return res.json({ success: false, message: "Quá nhiều yêu cầu, thử lại sau" }, 429);
     }
 
     const auth = new TelegramAuthService(BOT_TOKEN);
     const result = auth.verify(initData);
 
     if (!result?.isValid) {
-        return res.json({ success: false, message: "Unauthorized" }, 401);
+        return res.json({ success: false, message: "Xác thực thất bại" }, 401);
     }
 
-    const stringId = String(result.userId);
+    const userId = String(result.userId);
 
-    if (!rateLimitUser.check(stringId)) {
-        return res.json({ success: false, message: "Too many requests" }, 429);
+    if (!rateLimitUser.check(userId)) {
+        return res.json({ success: false, message: "Quá nhiều yêu cầu, thử lại sau" }, 429);
     }
 
-    const cached = cache.getCache(stringId);
-    if (cached) {
-        return res.json({ success: true, ...cached });
-    }
+    const cached = cache.getCache(userId);
+    if (cached) return res.json({ success: true, ...cached });
 
     try {
-        const user = await userService.getOrCreateUser({ id: stringId });
+        const user = await userSvc.getOrCreate(userId);
 
         const jwtService = new JwtService(JWT_SECRET);
-
-        const token = jwtService.sign({
-            userId: user.telegramId 
-        });
+        const token = jwtService.sign({ userId, kycStatus: user.kycStatus });
 
         const responseData = {
-            telegramId: user.telegramId,
-            token: token,
-            isLinked: user.isLinked 
+            userId,
+            token,
+            kycStatus: user.kycStatus,
+            creditScore: user.creditScore,
+            activeLoansCount: user.activeLoansCount,
         };
 
-        cache.setCache(stringId, responseData);
-        
-        return res.json({ success: true, ...responseData });
+        cache.setCache(userId, responseData);
+        log(`Auth success: user ${userId}`);
 
+        return res.json({ success: true, ...responseData });
     } catch (err) {
-        error("Auth handler error: " + err.message);
-        return res.json({ success: false, message: "Internal Server Error" }, 500);
+        error("Auth error: " + err.message);
+        return res.json({ success: false, message: "Lỗi server" }, 500);
     }
 }
 

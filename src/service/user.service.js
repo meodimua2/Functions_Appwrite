@@ -1,82 +1,51 @@
 const { databases } = require("../config/appwrite.config");
-const { Query } = require("node-appwrite");
+
+const DB = () => process.env.APPWRITE_DATABASE_ID;
+const COL = "users";
 
 class UserService {
-
-    constructor() {
-        this.dbId = process.env.APPWRITE_DATABASE_ID;
-        this.usersCol = "users";
-    }
-
-    async getOrCreateUser({ id }) {
-        const stringId = String(id);
-    
+    async getOrCreate(telegramId) {
+        const id = String(telegramId);
         try {
-            const user = await databases.getDocument(
-                this.dbId,
-                this.usersCol,
-                stringId
-            );
-            return this._formatUser(user);
-    
+            return await databases.getDocument(DB(), COL, id);
         } catch (err) {
             if (err.code === 404 || err.type === "document_not_found") {
-                try {
-                    const newUser = await databases.createDocument(
-                        this.dbId,
-                        this.usersCol,
-                        stringId,
-                        {
-                            puuid: null,
-                            gameName: null,
-                            tagLine: null,
-                            tier: null,
-                            rank: null,
-                            leaguePoints: 0,
-                            profileIconId: null
-                        }
-                    );
-                    return this._formatUser(newUser);
-                } catch (createErr) {
-                    const user = await databases.getDocument(
-                        this.dbId,
-                        this.usersCol,
-                        stringId
-                    );
-                    return this._formatUser(user);
-                }
+                return await databases.createDocument(DB(), COL, id, {
+                    kycStatus: "none",
+                    walletAddress: null,
+                    creditScore: 500,
+                    totalBorrowed: 0,
+                    totalRepaid: 0,
+                    totalLent: 0,
+                    activeLoansCount: 0,
+                });
             }
             throw err;
         }
     }
-    
-    async updateTftInfo(telegramId, tftData = {}) {
-        return await databases.updateDocument(
-            this.dbId,
-            this.usersCol,
-            String(telegramId),
-            {
-                puuid: tftData.puuid ?? null,
-                gameName: tftData.gameName ?? null,
-                tagLine: tftData.tagLine ?? null,
-                tier: tftData.tier ?? null,
-                rank: tftData.rank ?? null,
-                leaguePoints: tftData.leaguePoints ?? 0,
-                profileIconId: tftData.profileIconId ?? null
-            }
-        );
+
+    async updateKycStatus(telegramId, status) {
+        return await databases.updateDocument(DB(), COL, String(telegramId), {
+            kycStatus: status,
+        });
     }
 
-    _formatUser(user) {
-        return {
-            telegramId: user.$id,
-            isLinked: !!user.puuid,
-            puuid: user.puuid ?? null,
-            gameName: user.gameName ?? 'N/A',
-            rank: user.tier && user.rank 
-                ? `${user.tier} ${user.rank}` 
-                : 'Unranked'
-        };
+    async updateCreditScore(telegramId, delta) {
+        const user = await this.getOrCreate(telegramId);
+        const newScore = Math.min(1000, Math.max(0, user.creditScore + delta));
+        return await databases.updateDocument(DB(), COL, String(telegramId), {
+            creditScore: newScore,
+        });
+    }
+
+    async incrementLoanStats(telegramId, { borrowed = 0, repaid = 0, lent = 0, activeLoans = 0 }) {
+        const user = await this.getOrCreate(telegramId);
+        return await databases.updateDocument(DB(), COL, String(telegramId), {
+            totalBorrowed: user.totalBorrowed + borrowed,
+            totalRepaid: user.totalRepaid + repaid,
+            totalLent: user.totalLent + lent,
+            activeLoansCount: user.activeLoansCount + activeLoans,
+        });
     }
 }
 

@@ -3,11 +3,10 @@ const router = require("./router");
 module.exports = async (context) => {
     const { log, error, req } = context;
 
-    // Kiểm tra env vars cần thiết
-    const requiredEnv = ['APPWRITE_DATABASE_ID', 'BOT_TOKEN', 'JWT_SECRET', 'RIOT_API_KEY'];
+    const requiredEnv = ["APPWRITE_DATABASE_ID", "BOT_TOKEN", "JWT_SECRET"];
     const missing = requiredEnv.filter(key => !process.env[key]);
     if (missing.length > 0) {
-        error(`Missing environment variables: ${missing.join(', ')}`);
+        error(`Missing env vars: ${missing.join(", ")}`);
         return context.res.json({ success: false, message: "Server configuration error" }, 500);
     }
 
@@ -18,11 +17,10 @@ module.exports = async (context) => {
         if (payload?.body) payload = typeof payload.body === "string" ? JSON.parse(payload.body) : payload.body;
         if (payload?.data) payload = typeof payload.data === "string" ? JSON.parse(payload.data) : payload.data;
 
-        log("Incoming Action: " + (payload?.action || 'default'));
+        log(`Action: ${payload?.action || "auth"} | User: ${payload?.userId || "anon"}`);
         context.payload = payload;
 
         return await router(context);
-
     } catch (e) {
         error("Parse error: " + e.message);
         return context.res.json({ success: false, message: "Invalid payload" }, 400);

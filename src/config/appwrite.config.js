@@ -1,4 +1,4 @@
-const { Client, Databases } = require("node-appwrite");
+const { Client, Databases, ID, Query } = require("node-appwrite");
 
 const client = new Client()
     .setEndpoint(process.env.APPWRITE_ENDPOINT)
@@ -7,4 +7,4 @@ const client = new Client()
 
 const databases = new Databases(client);
 
-module.exports = { databases };
+module.exports = { databases, ID, Query };
